@@ -66,6 +66,7 @@ export class CameraManager {
         
         // Toggle facingMode
         this.config.facingMode = this.config.facingMode === 'user' ? 'environment' : 'user';
+        localStorage.setItem('facingMode', this.config.facingMode);
         
         // Stop current stream
         if (this.stream) {
@@ -88,7 +89,7 @@ export class CameraManager {
         } catch (error) {
             console.error('Failed to switch camera:', error);
             // Revert to previous facing mode on error
-            this.config.facingMode = this.config.facingMode === 'user' ? 'environment' : 'user';
+            this.config.facingMode = localStorage.getItem('facingMode') || 'environment';
         }
     }
 

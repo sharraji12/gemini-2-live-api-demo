@@ -29,7 +29,8 @@ export class GeminiAgent{
         // Initialize camera
         this.cameraManager = new CameraManager({
             width: this.resizeWidth,
-            quality: this.quality
+            quality: this.quality,
+            facingMode: localStorage.getItem('facingMode') || 'environment'
         });
         this.cameraInterval = null;
 
