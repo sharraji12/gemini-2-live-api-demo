@@ -126,7 +126,7 @@ export function setupEventListeners(agent) {
         try {
             await ensureAgentReady(agent);
             const text = elements.messageInput.value.trim();
-            await agent.client.sendText(text);
+            await agent.sendText(text);
             elements.messageInput.value = '';
         } catch (error) {
             console.error('Error sending message:', error);

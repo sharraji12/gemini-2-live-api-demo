@@ -134,6 +134,15 @@ export class GeminiAgent{
     }
 
     /**
+     * Sends a text message to the Gemini API.
+     * @param {string} text - The text message to send.
+     */
+    async sendText(text) {
+        await this.client.sendText(text);
+        this.emit('text_sent', text);
+    }
+
+    /**
      * Starts camera capture and sends images at regular intervals
      */
     async startCameraCapture() {
