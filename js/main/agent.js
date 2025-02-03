@@ -1,6 +1,6 @@
 /**
  * Core application class that orchestrates the interaction between various components
- * of the Gemini 2 Live API. Manages audio streaming, WebSocket communication,
+ * of the Gemini 2 Live API. Manages audio streaming, WebSocket communication, audio transcription,
  * and coordinates the overall application functionality.
  */
 import { GeminiWebsocketClient } from '../ws/client.js';
@@ -8,17 +8,28 @@ import { GeminiWebsocketClient } from '../ws/client.js';
 import { AudioRecorder } from '../audio/recorder.js';
 import { AudioStreamer } from '../audio/streamer.js';
 import { AudioVisualizer } from '../audio/visualizer.js';
+
+import { DeepgramTranscriber } from '../transcribe/deepgram.js';
+
 import { CameraManager } from '../camera/camera.js';
 import { ScreenManager } from '../screen/screen.js';
 
 export class GeminiAgent{
-    constructor(name = 'GeminiAgent', url, config, toolManager) {
+    constructor(name = 'GeminiAgent', url, config, deepgramApiKey, modelSampleRate, toolManager) {
         this.initialized = false;
         this.connected = false;
+
         // Initialize components
         this.audioContext = null;
         this.audioRecorder = null;
         this.audioStreamer = null;
+
+        // Initialize transcriber if API key is provided
+        if (deepgramApiKey) {
+            this.transcriber = new DeepgramTranscriber(deepgramApiKey, modelSampleRate);
+        } else {
+            this.transcriber = null;
+        }
 
         // Screen & Camera settings
         this.fps = localStorage.getItem('fps') || '5';
@@ -67,6 +78,11 @@ export class GeminiAgent{
                     this.audioStreamer.initialize();
                 }
                 this.audioStreamer.streamAudio(new Uint8Array(data));
+
+                if (this.transcriber && this.transcriber.isConnected) {
+                    this.transcriber.sendAudio(data);
+                }
+
             } catch (error) {
                 throw new Error('Audio processing error:' + error);
             }
@@ -215,6 +231,16 @@ export class GeminiAgent{
                 this.audioStreamer = null;
             }
 
+            // Cleanup transcriber
+            if (this.transcriber) {
+                this.transcriber.disconnect();
+                this.transcriber = null;
+                if (this.keepAliveInterval) {
+                    clearInterval(this.keepAliveInterval);
+                    this.keepAliveInterval = null;
+                }
+            }
+
             // Finally close audio context
             if (this.audioContext) {
                 await this.audioContext.close();
@@ -248,21 +274,53 @@ export class GeminiAgent{
             this.visualizer.start();
             this.audioRecorder = new AudioRecorder();
             
+            // Initialize Deepgram transcriber if API key is provided
+            if (this.transcriber) {
+                console.info('Initializing Deepgram transcriber...');
+
+                // Promise to send keep-alive every 10 seconds once connected
+                const connectionPromise = new Promise((resolve) => {
+                    this.transcriber.on('connected', () => {
+                        console.info('Connection established, setting up keep-alive...');
+                        this.keepAliveInterval = setInterval(() => {
+                            if (this.transcriber.isConnected) {
+                                this.transcriber.ws.send(JSON.stringify({ type: 'KeepAlive' }));
+                                console.info('Sent keep-alive message to Deepgram');
+                            }
+                        }, 10000);
+                        resolve();
+                    });
+                });
+
+                // Just log transcription to console for now
+                this.transcriber.on('transcription', (transcript) => {
+                    this.emit('transcription', transcript);
+                    console.debug('Transcription:', transcript);
+                });
+
+                // Connect to Deepgram and execute promise
+                await this.transcriber.connect();
+                await connectionPromise;
+            } else {
+                console.warn('No Deepgram API key provided, transcription disabled');
+            }
+            
             this.initialized = true;
             console.info(`${this.client.name} initialized successfully`);
             this.client.sendText('.');  // Trigger the model to start speaking first
         } catch (error) {
-            throw new Error('Error during the initialization of the client:' + error);
+            console.error('Initialization error:', error);
+            throw new Error('Error during the initialization of the client: ' + error.message);
         }
     }
 
     async startRecording() {
-        // Start recording with callback to send audio data to websocket
+        // Start recording with callback to send audio data to websocket and transcriber
         await this.audioRecorder.start(async (audioData) => {
             try {
                 this.client.sendAudio(audioData);
             } catch (error) {
-                console.error('Error sending audio data to websocket:', error);
+                console.error('Error sending audio data:', error);
                 this.audioRecorder.stop();
             }
         });

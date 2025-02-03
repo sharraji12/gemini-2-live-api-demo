@@ -1,9 +1,9 @@
 import elements from './elements.js';
 
-// Initialize settings from localStorage
 export function initializeSettings() {
     // Load values from localStorage
     elements.apiKeyInput.value = localStorage.getItem('apiKey') || '';
+    elements.deepgramApiKeyInput.value = localStorage.getItem('deepgramApiKey') || '';
     elements.voiceSelect.value = localStorage.getItem('voiceName') || 'Aoede';
     elements.sampleRateInput.value = localStorage.getItem('sampleRate') || '27000';
     elements.systemInstructionsInput.value = localStorage.getItem('systemInstructions') || 'You are a helpful assistant';
@@ -12,7 +12,7 @@ export function initializeSettings() {
     elements.topKInput.value = localStorage.getItem('top_k') || '65';
 
     // Initialize screen & camera settings
-    elements.fpsInput.value = localStorage.getItem('fps') || '5';
+    elements.fpsInput.value = localStorage.getItem('fps') || '1';
     elements.resizeWidthInput.value = localStorage.getItem('resizeWidth') || '640';
     elements.qualityInput.value = localStorage.getItem('quality') || '0.3';
 
@@ -68,6 +68,7 @@ function getThresholdLabel(value) {
 // Save settings to localStorage
 export function saveSettings() {
     localStorage.setItem('apiKey', elements.apiKeyInput.value);
+    localStorage.setItem('deepgramApiKey', elements.deepgramApiKeyInput.value);
     localStorage.setItem('voiceName', elements.voiceSelect.value);
     localStorage.setItem('sampleRate', elements.sampleRateInput.value);
     localStorage.setItem('systemInstructions', elements.systemInstructionsInput.value);

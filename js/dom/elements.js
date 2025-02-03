@@ -29,8 +29,13 @@ const elements = {
 elements.settingsDialog.className = 'settings-dialog';
 elements.settingsDialog.innerHTML = `
     <div class="settings-group">
-        <label for="apiKey">API Key</label>
-        <input type="password" id="apiKey" placeholder="Enter your API key">
+        <label for="apiKey">Gemini API Key</label>
+        <input type="password" id="apiKey" placeholder="Enter your Gemini API key">
+    </div>
+    
+    <div class="settings-group">
+        <label for="deepgramApiKey">Deepgram API Key (Optional)</label>
+        <input type="password" id="deepgramApiKey" placeholder="Enter your Deepgram API key">
     </div>
     
     <div class="settings-group">
@@ -132,6 +137,7 @@ elements.settingsOverlay.className = 'settings-overlay';
 
 // Settings Elements
 elements.apiKeyInput = elements.settingsDialog.querySelector('#apiKey');
+elements.deepgramApiKeyInput = elements.settingsDialog.querySelector('#deepgramApiKey');
 elements.voiceSelect = elements.settingsDialog.querySelector('#voice');
 elements.sampleRateInput = elements.settingsDialog.querySelector('#sampleRate');
 elements.sampleRateValue = elements.settingsDialog.querySelector('#sampleRateValue');

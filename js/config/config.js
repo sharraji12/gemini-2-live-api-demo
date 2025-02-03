@@ -3,6 +3,10 @@ export const getWebsocketUrl = () => {
     return `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${apiKey}`;
 };
 
+export const getDeepgramApiKey = () => {
+    return localStorage.getItem('deepgramApiKey') || '';
+};
+
 // Audio Configurations
 export const MODEL_SAMPLE_RATE = parseInt(localStorage.getItem('sampleRate')) || 27000;
 
