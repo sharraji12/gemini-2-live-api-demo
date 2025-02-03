@@ -104,11 +104,13 @@ export class GeminiAgent{
         this.client.on('interrupted', () => {
             this.audioStreamer.stop();
             this.audioStreamer.isInitialized = false;
+            this.emit('interrupted');
         });
 
         // Add an event handler when the model finishes speaking if needed
         this.client.on('turn_complete', () => {
             console.info('Model finished speaking');
+            this.emit('turn_complete');
         });
 
         this.client.on('tool_call', async (toolCall) => {
