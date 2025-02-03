@@ -1,4 +1,4 @@
-import { settingsTemplate } from './templates/settings-template.js';
+import { settingsTemplate } from './settings-template.js';
 
 class SettingsManager {
     constructor() {
