@@ -1,5 +1,3 @@
-import { base64ToArrayBuffer } from "../utils/utils.js";
-
 /**
  * Establishes a websocket connection to Deepgram API
  * for real-time audio transcription
@@ -92,8 +90,7 @@ export class DeepgramTranscriber {
         if (!this.isConnected) {
             throw new Error('WebSocket is not connected');
         }
-        const audioBuffer = base64ToArrayBuffer(audioData);
-        this.ws.send(audioBuffer);
+        this.ws.send(audioData);
     }
 
     disconnect() {
