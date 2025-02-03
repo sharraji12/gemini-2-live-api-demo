@@ -16,6 +16,7 @@ This is a simplified version of [Google's original React implementation](https:/
 - Real-time video streaming from the user's webcam
 - Real-time screen sharing from the user's screen
 - Function calling
+- Transcription of the model's audio (if Deepgram API key provided)
 - Built with vanilla JavaScript (no dependencies)
 - Mobile-friendly
 
@@ -44,6 +45,7 @@ This is a simplified version of [Google's original React implementation](https:/
 4. Access the application at `http://localhost:8000`
 
 5. Open the settings at the top right, paste your API key, and click "Save"
+6. Get free API key from [Deepgram](https://deepgram.com/pricing) and paste in the settings to get real-time transcript (Optional).
 
 ## Contributing
 
