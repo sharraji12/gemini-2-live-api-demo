@@ -92,7 +92,7 @@ export class DeepgramTranscriber {
         if (!this.isConnected) {
             throw new Error('WebSocket is not connected');
         }
-        const audioBuffer = typeof audioData === 'string' ? base64ToArrayBuffer(audioData) : audioData;
+        const audioBuffer = base64ToArrayBuffer(audioData);
         this.ws.send(audioBuffer);
     }
 
