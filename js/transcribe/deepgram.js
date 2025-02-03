@@ -4,18 +4,18 @@
  * Utilizes Free Tier of Deepgram API
  */
 export class DeepgramTranscriber {
-    constructor(apiKey, modelSampleRate) {
+    constructor(apiKey, sampleRate) {
         this.apiKey = apiKey;
         this.ws = null;
         this.isConnected = false;
         this.eventListeners = new Map();
-        this.modelSampleRate = modelSampleRate;
+        this.sampleRate = sampleRate;
         console.info('DeepgramTranscriber initialized');
     }
 
     async connect() {
         try {
-            const url = `wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=${this.modelSampleRate}`;
+            const url = `wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=${this.sampleRate}`;
             console.info('Attempting to connect to Deepgram WebSocket...');
             
             // Create WebSocket with authorization in protocol
@@ -32,7 +32,7 @@ export class DeepgramTranscriber {
                         model: 'nova-2',
                         language: 'en-US',
                         encoding: 'linear16',
-                        sample_rate: this.modelSampleRate,
+                        sample_rate: this.sampleRate,
                         channels: 1,
                         interim_results: false,
                         punctuate: true,

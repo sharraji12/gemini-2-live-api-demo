@@ -20,6 +20,8 @@ export class GeminiAgent{
         url,
         config,
         deepgramApiKey = null,
+        transcribeModelsSpeech = true,
+        transcribeUsersSpeech = false,
         modelSampleRate = 24000,
         toolManager = null
     } = {}) {
@@ -29,19 +31,18 @@ export class GeminiAgent{
         this.initialized = false;
         this.connected = false;
 
-        // Initialize components
+        // For audio components
         this.audioContext = null;
         this.audioRecorder = null;
         this.audioStreamer = null;
+        
+        // For transcribers
+        this.transcribeModelsSpeech = transcribeModelsSpeech;
+        this.transcribeUsersSpeech = transcribeUsersSpeech;
+        this.deepgramApiKey = deepgramApiKey;
+        this.modelSampleRate = modelSampleRate;
 
-        // Initialize transcriber if API key is provided
-        if (deepgramApiKey) {
-            this.transcriber = new DeepgramTranscriber(deepgramApiKey, modelSampleRate);
-        } else {
-            this.transcriber = null;
-        }
-
-        // Screen & Camera settings
+        // Initialize screen & camera settings
         this.fps = localStorage.getItem('fps') || '5';
         this.captureInterval = 1000 / this.fps;
         this.resizeWidth = localStorage.getItem('resizeWidth') || '640';
@@ -71,6 +72,7 @@ export class GeminiAgent{
         });
         this.screenInterval = null;
         
+        // Add function declarations to config
         this.toolManager = toolManager;
         config.tools.functionDeclarations = toolManager.getToolDeclarations() || [];
         this.config = config;
@@ -89,8 +91,8 @@ export class GeminiAgent{
                 }
                 this.audioStreamer.streamAudio(new Uint8Array(data));
 
-                if (this.transcriber && this.transcriber.isConnected) {
-                    this.transcriber.sendAudio(data);
+                if (this.modelTranscriber && this.modelTranscriber.isConnected) {
+                    this.modelTranscriber.sendAudio(data);
                 }
 
             } catch (error) {
@@ -241,13 +243,23 @@ export class GeminiAgent{
                 this.audioStreamer = null;
             }
 
-            // Cleanup transcriber
-            if (this.transcriber) {
-                this.transcriber.disconnect();
-                this.transcriber = null;
-                if (this.keepAliveInterval) {
-                    clearInterval(this.keepAliveInterval);
-                    this.keepAliveInterval = null;
+            // Cleanup model's speech transcriber
+            if (this.modelTranscriber) {
+                this.modelTranscriber.disconnect();
+                this.modelTranscriber = null;
+                if (this.modelsKeepAliveInterval) {
+                    clearInterval(this.modelsKeepAliveInterval);
+                    this.modelsKeepAliveInterval = null;
+                }
+            }
+
+            // Cleanup user's speech transcriber
+            if (this.userTranscriber) {
+                this.userTranscriber.disconnect();
+                this.userTranscriber = null;
+                if (this.userKeepAliveInterval) {
+                    clearInterval(this.userKeepAliveInterval);
+                    this.userKeepAliveInterval = null;
                 }
             }
 
@@ -270,6 +282,78 @@ export class GeminiAgent{
     }
 
     /**
+     * Initializes the model's speech transcriber with Deepgram
+     */
+    async initializeModelSpeechTranscriber() {
+        if (!this.modelTranscriber) {
+            console.warn('Either no Deepgram API key provided or model speech transcription disabled');
+            return;
+        }
+
+        console.info('Initializing Deepgram model speech transcriber...');
+
+        // Promise to send keep-alive every 10 seconds once connected
+        const connectionPromise = new Promise((resolve) => {
+            this.modelTranscriber.on('connected', () => {
+                console.info('Model speech transcriber connection established, setting up keep-alive...');
+                this.modelsKeepAliveInterval = setInterval(() => {
+                    if (this.modelTranscriber.isConnected) {
+                        this.modelTranscriber.ws.send(JSON.stringify({ type: 'KeepAlive' }));
+                        console.info('Sent keep-alive message to model speech transcriber');
+                    }
+                }, 10000);
+                resolve();
+            });
+        });
+
+        // Just log transcription to console for now
+        this.modelTranscriber.on('transcription', (transcript) => {
+            this.emit('transcription', transcript);
+            console.debug('Model speech transcription:', transcript);
+        });
+
+        // Connect to Deepgram and execute promise
+        await this.modelTranscriber.connect();
+        await connectionPromise;
+    }
+
+    /**
+     * Initializes the user's speech transcriber with Deepgram
+     */
+    async initializeUserSpeechTranscriber() {
+        if (!this.userTranscriber) {
+            console.warn('Either no Deepgram API key provided or user speech transcription disabled');
+            return;
+        }
+
+        console.info('Initializing Deepgram user speech transcriber...');
+
+        // Promise to send keep-alive every 10 seconds once connected
+        const connectionPromise = new Promise((resolve) => {
+            this.userTranscriber.on('connected', () => {
+                console.info('User speech transcriber connection established, setting up keep-alive...');
+                this.userKeepAliveInterval = setInterval(() => {
+                    if (this.userTranscriber.isConnected) {
+                        this.userTranscriber.ws.send(JSON.stringify({ type: 'KeepAlive' }));
+                        console.info('Sent keep-alive message to user transcriber');
+                    }
+                }, 10000);
+                resolve();
+            });
+        });
+
+        // Handle user transcription events
+        this.userTranscriber.on('transcription', (transcript) => {
+            this.emit('user_transcription', transcript);
+            console.debug('User speech transcription:', transcript);
+        });
+
+        // Connect to Deepgram and execute promise
+        await this.userTranscriber.connect();
+        await connectionPromise;
+    }
+
+    /**
      * Initiates audio recording from the microphone.
      * Streams audio data to the model in real-time, handling interruptions
      */
@@ -284,33 +368,16 @@ export class GeminiAgent{
             this.visualizer.start();
             this.audioRecorder = new AudioRecorder();
             
-            // Initialize Deepgram transcriber if API key is provided
-            if (this.transcriber) {
-                console.info('Initializing Deepgram transcriber...');
-
-                // Promise to send keep-alive every 10 seconds once connected
-                const connectionPromise = new Promise((resolve) => {
-                    this.transcriber.on('connected', () => {
-                        console.info('Connection established, setting up keep-alive...');
-                        this.keepAliveInterval = setInterval(() => {
-                            if (this.transcriber.isConnected) {
-                                this.transcriber.ws.send(JSON.stringify({ type: 'KeepAlive' }));
-                                console.info('Sent keep-alive message to Deepgram');
-                            }
-                        }, 10000);
-                        resolve();
-                    });
-                });
-
-                // Just log transcription to console for now
-                this.transcriber.on('transcription', (transcript) => {
-                    this.emit('transcription', transcript);
-                    console.debug('Transcription:', transcript);
-                });
-
-                // Connect to Deepgram and execute promise
-                await this.transcriber.connect();
-                await connectionPromise;
+            // Initialize transcriber if API key is provided
+            if (this.deepgramApiKey) {
+                if (this.transcribeModelsSpeech) {
+                    this.modelTranscriber = new DeepgramTranscriber(this.deepgramApiKey, this.modelSampleRate);
+                    await this.initializeModelSpeechTranscriber();
+                }
+                if (this.transcribeUsersSpeech) {
+                    this.userTranscriber = new DeepgramTranscriber(this.deepgramApiKey, 16000);
+                    await this.initializeUserSpeechTranscriber();
+                }
             } else {
                 console.warn('No Deepgram API key provided, transcription disabled');
             }
@@ -329,6 +396,9 @@ export class GeminiAgent{
         await this.audioRecorder.start(async (audioData) => {
             try {
                 this.client.sendAudio(audioData);
+                if (this.userTranscriber && this.userTranscriber.isConnected) {
+                    this.userTranscriber.sendAudio(new Uint8Array(audioData));
+                }
             } catch (error) {
                 console.error('Error sending audio data:', error);
                 this.audioRecorder.stop();
