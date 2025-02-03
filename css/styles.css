@@ -395,3 +395,53 @@ body {
 .settings-save-btn:hover {
     opacity: 0.9;
 }
+
+.chat-history {
+    position: absolute;
+    top: 60px;
+    left: 20px;
+    right: 20px;
+    bottom: 120px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 1;
+}
+
+.chat-message {
+    padding: 10px 15px;
+    border-radius: 15px;
+    max-width: 80%;
+    word-wrap: break-word;
+    line-height: 1.4;
+}
+
+.user-message {
+    background: #2c5282;
+    color: white;
+    align-self: flex-end;
+    margin-left: 20%;
+}
+
+.model-message {
+    background: #2d3748;
+    color: white;
+    align-self: flex-start;
+    margin-right: 20%;
+}
+
+.model-message.streaming::after {
+    content: '▋';
+    display: inline-block;
+    animation: blink 1s step-end infinite;
+    margin-left: 2px;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
