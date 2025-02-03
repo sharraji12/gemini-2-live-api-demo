@@ -1,5 +1,5 @@
 import elements from './elements.js';
-import * as settings from './settings.js';
+import settingsManager from '../settings/settings-manager.js';
 
 /**
  * Updates UI to show disconnect button and hide connect button
@@ -140,42 +140,10 @@ export function setupEventListeners(agent) {
             sendMessage();
         }
     });
-}
 
-export function initializeSettingsEvents() {
     // Settings button click
-    elements.settingsBtn.addEventListener('click', settings.showSettings);
-
-    // Close settings when clicking overlay
-    elements.settingsOverlay.addEventListener('click', settings.hideSettings);
-
-    // Prevent dialog close when clicking inside dialog
-    elements.settingsDialog.addEventListener('click', (e) => e.stopPropagation());
-
-    // Save settings
-    elements.settingsSaveBtn.addEventListener('click', () => {
-        settings.saveSettings();
-        settings.hideSettings();
-        window.location.reload();
-    });
-
-    // Toggle collapsible sections
-    elements.systemInstructionsToggle.addEventListener('click', () => {
-        settings.toggleCollapsible(elements.systemInstructionsToggle, elements.systemInstructionsContent);
-    });
-
-    elements.advancedToggle.addEventListener('click', () => {
-        settings.toggleCollapsible(elements.advancedToggle, elements.advancedContent);
-    });
-
-    elements.screenCameraToggle.addEventListener('click', () => {
-        settings.toggleCollapsible(elements.screenCameraToggle, elements.screenCameraContent);
-    });
-
-    elements.safetyToggle.addEventListener('click', () => {
-        settings.toggleCollapsible(elements.safetyToggle, elements.safetyContent);
-    });
-
-    // Initialize settings values
-    settings.initializeSettings();
+    elements.settingsBtn.addEventListener('click', () => settingsManager.show());
 }
+
+// Initialize settings
+settingsManager;

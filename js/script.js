@@ -4,7 +4,7 @@ import { getConfig, getWebsocketUrl, getDeepgramApiKey, MODEL_SAMPLE_RATE } from
 import { GoogleSearchTool } from './tools/google-search.js';
 import { ToolManager } from './tools/tool-manager.js';
 
-import { setupEventListeners, initializeSettingsEvents } from './dom/events.js';
+import { setupEventListeners } from './dom/events.js';
 
 const url = getWebsocketUrl();
 const config = getConfig();
@@ -18,6 +18,3 @@ const geminiAgent = new GeminiAgent('GeminiAgent', url, config, deepgramApiKey, 
 geminiAgent.connect();
 
 setupEventListeners(geminiAgent);
-
-// Initialize settings
-initializeSettingsEvents();
