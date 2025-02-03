@@ -8,13 +8,19 @@ import { setupEventListeners } from './dom/events.js';
 
 const url = getWebsocketUrl();
 const config = getConfig();
-
 const deepgramApiKey = getDeepgramApiKey();
 
 const toolManager = new ToolManager();
 toolManager.registerTool('googleSearch', new GoogleSearchTool());
 
-const geminiAgent = new GeminiAgent('GeminiAgent', url, config, deepgramApiKey, MODEL_SAMPLE_RATE, toolManager);
+const geminiAgent = new GeminiAgent({
+    url,
+    config,
+    deepgramApiKey,
+    modelSampleRate: MODEL_SAMPLE_RATE,
+    toolManager
+});
+
 geminiAgent.connect();
 
 setupEventListeners(geminiAgent);

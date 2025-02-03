@@ -15,7 +15,17 @@ import { CameraManager } from '../camera/camera.js';
 import { ScreenManager } from '../screen/screen.js';
 
 export class GeminiAgent{
-    constructor(name = 'GeminiAgent', url, config, deepgramApiKey, modelSampleRate, toolManager) {
+    constructor({
+        name = 'GeminiAgent',
+        url,
+        config,
+        deepgramApiKey = null,
+        modelSampleRate = 24000,
+        toolManager = null
+    } = {}) {
+        if (!url) throw new Error('WebSocket URL is required');
+        if (!config) throw new Error('Config is required');
+
         this.initialized = false;
         this.connected = false;
 
@@ -62,7 +72,7 @@ export class GeminiAgent{
         this.screenInterval = null;
         
         this.toolManager = toolManager;
-        config.tools.functionDeclarations = toolManager.getToolDeclarations();
+        config.tools.functionDeclarations = toolManager.getToolDeclarations() || [];
         this.config = config;
 
         this.name = name;
