@@ -45,6 +45,11 @@ geminiAgent.on('turn_complete', () => {
     chatManager.finalizeStreamingMessage();
 });
 
+geminiAgent.on('text', (text) => {
+    console.log('text', text);
+    chatManager.updateStreamingMessage(text);
+});
+
 geminiAgent.connect();
 
 setupEventListeners(geminiAgent);

@@ -121,9 +121,14 @@ export class GeminiWebsocketClient extends EventEmitter {
                 this.emit('turn_complete');
             }
             if (serverContent.modelTurn) {
-                // console.debug(`${this.name} is sending content`);
-                // Split content into audio and non-audio parts
+                // Split content into text, audio, and non-audio parts
                 let parts = serverContent.modelTurn.parts;
+
+                // Filter out text parts
+                const textParts = parts.filter((p) => p.text);
+                textParts.forEach((p) => {
+                    this.emit('text', p.text);
+                });
 
                 // Filter out audio parts from the model's content parts
                 const audioParts = parts.filter((p) => p.inlineData && p.inlineData.mimeType.startsWith('audio/pcm'));

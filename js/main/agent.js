@@ -83,6 +83,11 @@ export class GeminiAgent{
     }
 
     setupEventListeners() {
+        // Handle incoming text from the model
+        this.client.on('text', (text) => {
+            this.emit('text', text);
+        });
+
         // Handle incoming audio data from the model
         this.client.on('audio', async (data) => {
             try {
