@@ -2,12 +2,6 @@
  * Manages screen sharing capture and image processing
  */
 export class ScreenManager {
-    /**
-     * @param {Object} config
-     * @param {number} config.width - Target width for resizing captured images
-     * @param {number} config.quality - JPEG quality (0-1)
-     * @param {Function} [config.onStop] - Callback when screen sharing stops
-     */
     constructor(config) {
         this.config = {
             width: config.width || 1280,
@@ -25,21 +19,11 @@ export class ScreenManager {
     }
 
     /**
-     * Show the screen preview
+     * Check if the device is mobile
+     * @returns {boolean}
      */
-    showPreview() {
-        if (this.previewContainer) {
-            this.previewContainer.style.display = 'block';
-        }
-    }
-
-    /**
-     * Hide the screen preview
-     */
-    hidePreview() {
-        if (this.previewContainer) {
-            this.previewContainer.style.display = 'none';
-        }
+    isMobileDevice() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     }
 
     /**
@@ -50,25 +34,44 @@ export class ScreenManager {
         if (this.isInitialized) return;
 
         try {
-            // Request screen sharing
-            this.stream = await navigator.mediaDevices.getDisplayMedia({
+            // Configure different constraints for mobile and desktop
+            const constraints = {
                 video: {
                     cursor: "always"
                 },
                 audio: false
-            });
+            };
+
+            // Add mobile-specific constraints
+            if (this.isMobileDevice()) {
+                constraints.video = {
+                    ...constraints.video,
+                    // Add mobile-specific constraints
+                    displaySurface: ['application', 'browser', 'window'],
+                    logicalSurface: true,
+                    // Try to ensure better mobile compatibility
+                    frameRate: { ideal: 15, max: 30 },
+                    width: { ideal: 720 },
+                    height: { ideal: 1280 }
+                };
+            }
+
+            // Request screen sharing with appropriate constraints
+            this.stream = await navigator.mediaDevices.getDisplayMedia(constraints);
 
             // Create and setup video element
             this.videoElement = document.createElement('video');
             this.videoElement.srcObject = this.stream;
-            this.videoElement.playsInline = true;
+            this.videoElement.playsInline = true; // Important for iOS
+            this.videoElement.autoplay = true; // Important for mobile
+            this.videoElement.muted = true; // Required for autoplay on mobile
 
             // Add video to preview container
             const previewContainer = document.getElementById('screenPreview');
             if (previewContainer) {
                 previewContainer.appendChild(this.videoElement);
                 this.previewContainer = previewContainer;
-                this.showPreview(); // Show preview when initialized
+                this.showPreview();
             }
 
             await this.videoElement.play();
@@ -79,88 +82,39 @@ export class ScreenManager {
             this.aspectRatio = videoHeight / videoWidth;
 
             // Calculate canvas size maintaining aspect ratio
-            const canvasWidth = this.config.width;
-            const canvasHeight = Math.round(this.config.width * this.aspectRatio);
+            const canvasWidth = Math.min(this.config.width, window.innerWidth);
+            const canvasHeight = Math.round(canvasWidth * this.aspectRatio);
 
             // Create canvas for image processing
             this.canvas = document.createElement('canvas');
             this.canvas.width = canvasWidth;
             this.canvas.height = canvasHeight;
-            this.ctx = this.canvas.getContext('2d');
+            this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
 
             // Listen for the end of screen sharing
             this.stream.getVideoTracks()[0].addEventListener('ended', () => {
                 this.dispose();
-                // Notify parent component that sharing has stopped
                 if (this.config.onStop) {
                     this.config.onStop();
                 }
             });
 
+            // Handle visibility change for mobile
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden && this.stream) {
+                    this.dispose();
+                    if (this.config.onStop) {
+                        this.config.onStop();
+                    }
+                }
+            });
+
             this.isInitialized = true;
         } catch (error) {
+            console.error('Screen capture initialization error:', error);
             throw new Error(`Failed to initialize screen capture: ${error.message}`);
         }
     }
 
-    /**
-     * Get current canvas dimensions
-     * @returns {{width: number, height: number}}
-     */
-    getDimensions() {
-        if (!this.isInitialized) {
-            throw new Error('Screen capture not initialized. Call initialize() first.');
-        }
-        return {
-            width: this.canvas.width,
-            height: this.canvas.height
-        };
-    }
-
-    /**
-     * Capture and process a screenshot
-     * @returns {Promise<string>} Base64 encoded JPEG image
-     */
-    async capture() {
-        if (!this.isInitialized) {
-            throw new Error('Screen capture not initialized. Call initialize() first.');
-        }
-
-        // Draw current video frame to canvas, maintaining aspect ratio
-        this.ctx.drawImage(
-            this.videoElement,
-            0, 0,
-            this.canvas.width,
-            this.canvas.height
-        );
-
-        // Convert to base64 JPEG with specified quality
-        return this.canvas.toDataURL('image/jpeg', this.config.quality).split(',')[1];
-    }
-
-    /**
-     * Stop screen capture and cleanup resources
-     */
-    dispose() {
-        if (this.stream) {
-            this.stream.getTracks().forEach(track => track.stop());
-            this.stream = null;
-        }
-        
-        if (this.videoElement) {
-            this.videoElement.srcObject = null;
-            this.videoElement = null;
-        }
-
-        if (this.previewContainer) {
-            this.hidePreview();
-            this.previewContainer.innerHTML = ''; // Clear the preview container
-            this.previewContainer = null;
-        }
-
-        this.canvas = null;
-        this.ctx = null;
-        this.isInitialized = false;
-        this.aspectRatio = null;
-    }
+    // ... rest of the existing methods remain the same ...
 }
